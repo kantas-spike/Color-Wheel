@@ -11,17 +11,14 @@ root = tk.Tk()
 root.title("Colorwheel")
 
 
-def on_mouse_drag(event):
-    """Mouse movement callback"""
-    # get mouse coordinates
-    x = event.x
-    y = event.y
-
+def redraw(x, y):
     # clear the canvas and redraw
     canvas.delete("all")
     canvas.create_image(365, 365, image=wheel)
     canvas.create_image(x, y, image=target)
 
+
+def update_color(x, y):
     # get rgb color from pixel location in image
     rgb_color = wheel.get(x, y)
 
@@ -33,9 +30,30 @@ def on_mouse_drag(event):
     color_select["bg"] = hex_color
 
 
+def on_mouse_drag(event):
+    """Mouse movement callback"""
+    # get mouse coordinates
+    x = event.x
+    y = event.y
+
+    redraw(x, y)
+    update_color(x, y)
+
+
+def on_mouse_dbclick(event):
+    """Mouse movement callback"""
+    # get mouse coordinates
+    x = event.x
+    y = event.y
+
+    redraw(x, y)
+    update_color(x, y)
+
+
 canvas = tk.Canvas(root, height=730, width=730)
 canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
 canvas.bind("<B1-Motion>", on_mouse_drag)
+canvas.bind("<Double-Button-1>", on_mouse_dbclick)
 
 color_label = tk.StringVar()
 color_label.set("#FFFFFF\nrgb(255,255,255)")
@@ -45,7 +63,9 @@ color_select.pack(side=tk.LEFT, fill=tk.BOTH, expand=tk.YES)
 wheel = tk.PhotoImage(file="color_wheel.png")
 target = tk.PhotoImage(file="target.png")
 
-canvas.create_image(365, 365, image=wheel)
-canvas.create_image(365, 365, image=target)
+x, y = 365, 365
+
+redraw(x, y)
+update_color(x, y)
 
 root.mainloop()
