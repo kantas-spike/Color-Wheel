@@ -80,17 +80,37 @@ class ColorWheel:
         self.canvas.create_image(365 + self.canvas_mx, 365 + self.canvas_my, image=wheel)
         self.canvas.create_image(self.cur_x, self.cur_y, image=self.target)
 
+    def get_color(self):
+        wheel = self.wheels[self.scale]
+        return wheel.get(self.cur_x, self.cur_y)
+
+    def contrast_ratio(self, color1, color2):
+        lums = []
+        lums.append(self.relative_luminace(color1))
+        lums.append(self.relative_luminace(color2))
+        wk = sorted(lums, reverse=True)
+        return (wk[0] + 0.05) / (wk[1] + 0.05)
+
     def update_color(self):
         # get rgb color from pixel location in image
-        wheel = self.wheels[self.scale]
-        rgb_color = wheel.get(self.cur_x, self.cur_y)
+        rgb_color = self.get_color()
 
         # format the rgb color in hexadecimal
         hex_color = "#{:02x}{:02x}{:02x}".format(*rgb_color)
 
+        font_color = [0xFF, 0xFF, 0xFF]  # white
+        ratio = self.contrast_ratio(rgb_color, font_color)
+        # print("font white: ", ratio)
+
+        if ratio < 4.5:
+            font_color = [0, 0, 0]  # black
+            # ratio = self.contrast_ratio(rgb_color, font_color)
+            # print("font black: ", ratio)
+
         # adjust the label background color and text
         self.color_label.set(hex_color + "\nrgb({},{},{})".format(*rgb_color))
         self.color_select["bg"] = hex_color
+        self.color_select["fg"] = "#{:02x}{:02x}{:02x}".format(*font_color)
 
     def has_color(self, x, y):
         wheel = self.wheels[self.scale]
@@ -137,6 +157,16 @@ class ColorWheel:
 
     def val2key(self, val):
         return "{:0.2f}".format(val)
+
+    def srgb2rgb(self, v):
+        if v <= 0.03928:
+            return v / 12.92
+        else:
+            return ((v + 0.055) / 1.055) ** 2.4
+
+    def relative_luminace(self, rgb):
+        r, g, b = [self.srgb2rgb(x / 255.0) for x in rgb]
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
 if __name__ == "__main__":
