@@ -12,7 +12,7 @@ poetry run python3 color_wheel.py
 
 照準型のカーソルをドラッグすると該当箇所の色情報を右側の領域に表示します。
 
-![](screenshot.PNG)
+![](screenshot.png)
 
 ## 環境構築
 
