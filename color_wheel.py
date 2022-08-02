@@ -32,7 +32,7 @@ class ColorWheel:
         self.root = tk.Tk()
         self.root.title("Colorwheel")
         frame_canvas = tk.Frame(self.root)
-        frame_right = tk.Frame(self.root)
+        self.frame_right = tk.Frame(self.root)
         frame_bottom = tk.Frame(self.root)
 
         self.canvas = tk.Canvas(frame_canvas, height=730 + self.canvas_my * 2, width=730 + self.canvas_mx * 2)
@@ -43,9 +43,13 @@ class ColorWheel:
         self.color_label = tk.StringVar()
         self.color_label.set("#FFFFFF\nrgb(255,255,255)")
         self.color_select = tk.Label(
-            frame_right, textvariable=self.color_label, bg="white", width=20, font=("Arial", 20, "bold")
+            self.frame_right, textvariable=self.color_label, bg="white", width=20, font=("Arial", 20, "bold")
         )
-        self.color_select.pack(fill=tk.BOTH, expand=1)
+        self.color_select.pack(side=tk.LEFT, fill=tk.NONE, expand=0)
+        self.color_button = tk.Button(
+            self.frame_right, text="COPY", highlightthickness=8, command=self.on_copy_clicked
+        )
+        self.color_button.pack(side=tk.RIGHT, fill=tk.NONE, expand=0)
 
         v_var = tk.DoubleVar(value=1.0)
         v_scale = tk.Scale(
@@ -70,7 +74,7 @@ class ColorWheel:
         self.target = tk.PhotoImage(file="target.png")
 
         frame_canvas.grid(row=0, column=0)
-        frame_right.grid(row=0, column=1, rowspan=2, sticky=tk.N + tk.S)
+        self.frame_right.grid(row=0, column=1, rowspan=2, sticky=tk.N + tk.S)
         frame_bottom.grid(row=1, column=0, sticky=tk.W + tk.E)
 
     def redraw(self):
@@ -111,6 +115,9 @@ class ColorWheel:
         self.color_label.set(hex_color + "\nrgb({},{},{})".format(*rgb_color))
         self.color_select["bg"] = hex_color
         self.color_select["fg"] = "#{:02x}{:02x}{:02x}".format(*font_color)
+        self.color_button["highlightbackground"] = hex_color
+        self.color_button["highlightcolor"] = hex_color
+        self.frame_right["bg"] = hex_color
 
     def has_color(self, x, y):
         wheel = self.wheels[self.scale]
@@ -125,6 +132,10 @@ class ColorWheel:
             return False
         else:
             return True
+
+    def on_copy_clicked(self):
+        self.root.clipboard_clear()
+        self.root.clipboard_append(self.frame_right["bg"])
 
     def on_mouse_draged(self, event):
         """Mouse movement callback"""
