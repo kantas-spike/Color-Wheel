@@ -2,6 +2,18 @@
 
  A colorwheel selector demo tool built with Tkinter
 
+## 使い方
+
+以下を実行すると、カラーホイール画面が表示されます。
+
+~~~shell
+poetry run python3 color_wheel.py
+~~~
+
+照準型のカーソルをドラッグすると該当箇所の色情報を右側の領域に表示します。
+
+![](screenshot.PNG)
+
 ## 環境構築
 
 Python標準ライブラリである[tkinter](https://docs.python.org/ja/3/library/tkinter.html)を使用しています。
@@ -26,19 +38,6 @@ python3 -m tkinter
 ~~~shell
 poetry install
 ~~~
-
-## 使い方
-
-以下を実行すると、カラーホイール画面が表示されます。
-
-~~~shell
-poetry run python3 color_wheel.py
-~~~
-
-照準型のカーソルをドラッグすると該当箇所の色情報を右側の領域に表示します。
-
-![](screenshot.PNG)
-
 
 ## `Tcl/Tk`対応版 Pythonのビルド方法
 
