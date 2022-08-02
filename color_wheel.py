@@ -9,7 +9,7 @@ import tkinter as tk
 import copy
 
 
-class LabelFrame(tk.Frame):
+class ColorFrame(tk.Frame):
     def __init__(self, master=None, stock=False) -> None:
         super().__init__(master)
 
@@ -36,7 +36,7 @@ class LabelFrame(tk.Frame):
             self.del_button.pack(side=tk.RIGHT, fill=tk.NONE, expand=0)
 
     def stock_color(self):
-        frm = LabelFrame(self.parent, True)
+        frm = ColorFrame(self.parent, True)
         frm.update_color(copy.copy(self.rgb_color), copy.copy(self.font_color))
         frm.pack(side=tk.BOTTOM)
 
@@ -117,8 +117,8 @@ class ColorWheel:
         )
         v_scale.pack(fill=tk.X, side=tk.LEFT, expand=1)
 
-        self.labelFrame = LabelFrame(self.frame_right)
-        self.labelFrame.pack(side=tk.TOP)
+        self.colorFrame = ColorFrame(self.frame_right)
+        self.colorFrame.pack(side=tk.TOP)
 
         self.wheels = {}
         v = 0.1
@@ -163,7 +163,7 @@ class ColorWheel:
             # ratio = self.contrast_ratio(rgb_color, font_color)
             # print("font black: ", ratio)
 
-        self.labelFrame.update_color(rgb_color, font_color)
+        self.colorFrame.update_color(rgb_color, font_color)
 
     def has_color(self, x, y):
         wheel = self.wheels[self.scale]
