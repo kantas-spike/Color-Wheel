@@ -6,6 +6,70 @@
 
 """
 import tkinter as tk
+import copy
+
+
+class LabelFrame(tk.Frame):
+    def __init__(self, master=None, stock=False) -> None:
+        super().__init__(master)
+
+        self.rgb_color = [255, 255, 255]
+        self.font_color = [255, 255, 255]
+        self.parent = master
+        self.color_label = tk.StringVar()
+        self.color_label.set("#FFFFFF\nrgb(255,255,255)")
+        self.color_select = tk.Label(
+            self, textvariable=self.color_label, bg="white", width=20, font=("Arial", 20, "bold")
+        )
+        self.color_select.pack(side=tk.LEFT, fill=tk.NONE, expand=0)
+        self.copy_button = tk.Button(self, text="COPY", highlightthickness=8, command=self.on_copy_clicked)
+        self.copy_button.pack(side=tk.RIGHT, fill=tk.NONE, expand=0)
+
+        self.add_button = None
+        self.del_button = None
+
+        if not stock:
+            self.add_button = tk.Button(self, text="+", highlightthickness=8, command=self.on_add_clicked)
+            self.add_button.pack(side=tk.RIGHT, fill=tk.NONE, expand=0)
+        else:
+            self.del_button = tk.Button(self, text="-", highlightthickness=8, command=self.on_del_clicked)
+            self.del_button.pack(side=tk.RIGHT, fill=tk.NONE, expand=0)
+
+    def stock_color(self):
+        frm = LabelFrame(self.parent, True)
+        frm.update_color(copy.copy(self.rgb_color), copy.copy(self.font_color))
+        frm.pack(side=tk.BOTTOM)
+
+    def on_copy_clicked(self):
+        self.parent.clipboard_clear()
+        self.parent.clipboard_append(self.color_select["bg"])
+
+    def on_add_clicked(self):
+        self.stock_color()
+
+    def on_del_clicked(self):
+        self.destroy()
+
+    def update_color(self, rgb_color, font_color):
+        self.rgb_color = rgb_color
+        self.font_color = font_color
+        hex_color = "#{:02x}{:02x}{:02x}".format(*rgb_color)
+        self.color_label.set(hex_color + "\nrgb({},{},{})".format(*rgb_color))
+        self.color_select["bg"] = hex_color
+        self.color_select["fg"] = "#{:02x}{:02x}{:02x}".format(*font_color)
+        self.copy_button["highlightbackground"] = hex_color
+        self.copy_button["highlightcolor"] = hex_color
+
+        if self.add_button:
+            self.add_button["highlightbackground"] = hex_color
+            self.add_button["highlightcolor"] = hex_color
+
+        if self.del_button:
+            self.del_button["highlightbackground"] = hex_color
+            self.del_button["highlightcolor"] = hex_color
+
+        self["bg"] = hex_color
+        self.parent["bg"] = hex_color
 
 
 class ColorWheel:
@@ -40,17 +104,6 @@ class ColorWheel:
         self.canvas.bind("<B1-Motion>", self.on_mouse_draged)
         self.canvas.bind("<Double-Button-1>", self.on_mouse_dbclicked)
 
-        self.color_label = tk.StringVar()
-        self.color_label.set("#FFFFFF\nrgb(255,255,255)")
-        self.color_select = tk.Label(
-            self.frame_right, textvariable=self.color_label, bg="white", width=20, font=("Arial", 20, "bold")
-        )
-        self.color_select.pack(side=tk.LEFT, fill=tk.NONE, expand=0)
-        self.color_button = tk.Button(
-            self.frame_right, text="COPY", highlightthickness=8, command=self.on_copy_clicked
-        )
-        self.color_button.pack(side=tk.RIGHT, fill=tk.NONE, expand=0)
-
         v_var = tk.DoubleVar(value=1.0)
         v_scale = tk.Scale(
             frame_bottom,
@@ -64,7 +117,9 @@ class ColorWheel:
         )
         v_scale.pack(fill=tk.X, side=tk.LEFT, expand=1)
 
-        # wheel = tk.PhotoImage(file="color_wheel.png")
+        self.labelFrame = LabelFrame(self.frame_right)
+        self.labelFrame.pack(side=tk.TOP)
+
         self.wheels = {}
         v = 0.1
         while v <= 1.0:
@@ -99,9 +154,6 @@ class ColorWheel:
         # get rgb color from pixel location in image
         rgb_color = self.get_color()
 
-        # format the rgb color in hexadecimal
-        hex_color = "#{:02x}{:02x}{:02x}".format(*rgb_color)
-
         font_color = [0xFF, 0xFF, 0xFF]  # white
         ratio = self.contrast_ratio(rgb_color, font_color)
         # print("font white: ", ratio)
@@ -111,13 +163,7 @@ class ColorWheel:
             # ratio = self.contrast_ratio(rgb_color, font_color)
             # print("font black: ", ratio)
 
-        # adjust the label background color and text
-        self.color_label.set(hex_color + "\nrgb({},{},{})".format(*rgb_color))
-        self.color_select["bg"] = hex_color
-        self.color_select["fg"] = "#{:02x}{:02x}{:02x}".format(*font_color)
-        self.color_button["highlightbackground"] = hex_color
-        self.color_button["highlightcolor"] = hex_color
-        self.frame_right["bg"] = hex_color
+        self.labelFrame.update_color(rgb_color, font_color)
 
     def has_color(self, x, y):
         wheel = self.wheels[self.scale]
@@ -132,10 +178,6 @@ class ColorWheel:
             return False
         else:
             return True
-
-    def on_copy_clicked(self):
-        self.root.clipboard_clear()
-        self.root.clipboard_append(self.frame_right["bg"])
 
     def on_mouse_draged(self, event):
         """Mouse movement callback"""
