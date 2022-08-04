@@ -11,12 +11,12 @@ import math
 
 
 class ColorCursor:
-    COLOR_SINGLE = "単一色"
-    COLOR_COMPLEMENTARY = "補色"
-    COLOR_TRIAD = "トライアド"
-    COLOR_ANALOGOUS = "類似色"
-    COLOR_SPLIT_COMPLEMENTARY = "スプリットコンプリメンタリー"
-    COLOR_TYPES = [COLOR_SINGLE, COLOR_COMPLEMENTARY, COLOR_TRIAD, COLOR_ANALOGOUS, COLOR_SPLIT_COMPLEMENTARY]
+    COLOR_SINGLE = "Single"
+    COLOR_COMPLEMENTARY = "Complementary"
+    COLOR_TRIAD = "Triadic"
+    COLOR_ANALOGOUS = "Analogous"
+    COLOR_SPLIT_COMPLEMENTARY = "Split-complementary"
+    COLOR_TYPES = [COLOR_SINGLE, COLOR_COMPLEMENTARY, COLOR_SPLIT_COMPLEMENTARY, COLOR_TRIAD, COLOR_ANALOGOUS]
 
     CURSOR_META = {
         COLOR_SINGLE: {"cursor_count": 1, "others_degree": []},
@@ -143,7 +143,7 @@ class ColorWheel:
         frame_canvas = tk.Frame(self.root)
         self.frame_right = tk.Frame(self.root)
         frame_bottom = tk.Frame(self.root)
-        self.group_frame = tk.LabelFrame(self.root, text="配色パターン")
+        self.group_frame = tk.LabelFrame(self.root, text="Color Scheme")
 
         self.option_value = tk.StringVar()
         self.option_value.set(ColorCursor.COLOR_SINGLE)
