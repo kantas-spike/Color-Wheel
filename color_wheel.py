@@ -41,20 +41,27 @@ class ColorCursor:
         ny = rx * math.sin(rad) + ry * math.cos(rad) + self.center_y
         return int(nx), int(ny)
 
-    def setup_positions(self, x, y):
-        self.other_positions.clear()
-        meta = self.CURSOR_META[self.color_type]
-        for d in meta["others_degree"]:
-            self.other_positions.append(tuple(self.rotate(x, y, d)))
+    def calc_all_positions(self, x, y):
+        pos_list = [(x, y)]
+        pos_list.extend(self.calc_other_positions(x, y))
+        return pos_list
 
-    def update_position(self, x, y):
+    def calc_other_positions(self, x, y):
+        meta = self.CURSOR_META[self.color_type]
+        return [tuple(self.rotate(x, y, d)) for d in meta["others_degree"]]
+
+    def update_other_positions(self, x, y):
+        self.other_positions.clear()
+        self.other_positions.extend(self.calc_other_positions(x, y))
+
+    def update_positions(self, x, y):
         self.cur_x = x
         self.cur_y = y
-        self.setup_positions(x, y)
+        self.update_other_positions(x, y)
 
     def update_color_type(self, color_type):
         self.color_type = color_type
-        self.setup_positions(self.cur_x, self.cur_y)
+        self.update_other_positions(self.cur_x, self.cur_y)
 
 
 class ColorFrame(tk.Frame):
@@ -124,8 +131,7 @@ class ColorWheel:
         self.setup_widgets()
         self.wheel_width = self.wheels[self.scale].width()
         self.wheel_height = self.wheels[self.scale].height()
-        self.target_width = self.target.width()
-        self.target_height = self.target.height()
+        self.wheel_radius = round(self.wheel_width / 2)
 
     def start(self):
         self.update()
@@ -189,7 +195,9 @@ class ColorWheel:
         frame_bottom.grid(row=2, column=0, sticky=tk.W + tk.E)
 
         self.canvas.update()
-        self.canvas_center = (self.canvas.winfo_width() // 2, self.canvas.winfo_height() // 2)
+        self.canvas_center = (round(self.canvas.winfo_width() / 2), round(self.canvas.winfo_height() / 2))
+        wheel_center = (self.wheels["1.00"].width() // 2, self.wheels["1.00"].height() // 2)
+        self.wheel_offset = (wheel_center[0] - self.canvas_center[0], wheel_center[1] - self.canvas_center[1])
         self.color_cursor = ColorCursor(*self.canvas_center, *self.canvas_center)
 
     def redraw(self):
@@ -220,37 +228,47 @@ class ColorWheel:
 
         return font_color
 
-    def update_color(self):
-        # get rgb color from pixel location in image
+    def get_wheel_color(self, x, y):
         wheel = self.wheels[self.scale]
-        rgb_color = wheel.get(self.color_cursor.cur_x, self.color_cursor.cur_y)
+        return wheel.get(x + self.wheel_offset[0], y + self.wheel_offset[1])
+
+    def update_color(self):
+        rgb_color = self.get_wheel_color(self.color_cursor.cur_x, self.color_cursor.cur_y)
 
         font_color = self.get_font_color(rgb_color)
         self.color_frame.update_color(rgb_color, font_color)
         self.frame_right["bg"] = "#{:02x}{:02x}{:02x}".format(*rgb_color)
 
         for idx, pos in enumerate(self.color_cursor.other_positions):
-            rgb_color = wheel.get(*pos)
+            rgb_color = self.get_wheel_color(*pos)
             font_color = self.get_font_color(rgb_color)
             self.color_frame_list[idx].update_color(rgb_color, font_color)
 
+    def in_wheel(self, x, y):
+        x += self.wheel_offset[0]
+        y += self.wheel_offset[1]
+        if not (0 <= x <= self.wheel_width):
+            return False
+        if not (0 <= y <= self.wheel_height):
+            return False
+        return True
+
     def has_color(self, x, y):
         self.canvas_center
-        radius = self.wheel_width // 2
+        pos_list = self.color_cursor.calc_all_positions(x, y)
+        for nx, ny in pos_list:
+            if not self.in_wheel(nx, ny):
+                return False
+            try:
+                rgb_color = self.get_wheel_color(nx, ny)
+                hex_color = "#{:02x}{:02x}{:02x}".format(*rgb_color)
+                if hex_color == "#000000":
+                    return False
+            except tk.TclError as err:
+                print("has_color: ignore TclError", err)
+                return False
 
-        wheel = self.wheels[self.scale]
-
-        if x < self.canvas_center[0] - radius or x > self.canvas_center[0] + radius:
-            return False
-        if y < self.canvas_center[1] - radius or y > self.canvas_center[1] + radius:
-            return False
-
-        rgb_color = wheel.get(x, y)
-        hex_color = "#{:02x}{:02x}{:02x}".format(*rgb_color)
-        if hex_color == "#000000":
-            return False
-        else:
-            return True
+        return True
 
     def on_mouse_draged(self, event):
         """Mouse movement callback"""
@@ -258,7 +276,7 @@ class ColorWheel:
             return
 
         # get mouse coordinates
-        self.color_cursor.update_position(event.x, event.y)
+        self.color_cursor.update_positions(event.x, event.y)
 
         self.redraw()
         self.update_color()
@@ -284,8 +302,7 @@ class ColorWheel:
         if not self.has_color(event.x, event.y):
             return
 
-        # get mouse coordinates
-        self.color_cursor.update_position(event.x, event.y)
+        self.color_cursor.update_positions(event.x, event.y)
 
         self.redraw()
         self.update_color()
