@@ -90,16 +90,25 @@ class ColorWheel:
 
     def setup_widgets(self):
         self.scale = self.val2key(1.0)
-        self.cur_x, self.cur_y = 365, 365
-        self.canvas_mx, self.canvas_my = 2, 2
 
         self.root = tk.Tk()
         self.root.title("Colorwheel")
         frame_canvas = tk.Frame(self.root)
         self.frame_right = tk.Frame(self.root)
         frame_bottom = tk.Frame(self.root)
+        self.group_frame = tk.LabelFrame(self.root, text="配色パターン")
 
-        self.canvas = tk.Canvas(frame_canvas, height=730 + self.canvas_my * 2, width=730 + self.canvas_mx * 2)
+        self.option_value = tk.StringVar()
+        self.option_value.set("単一色")
+        tk.Radiobutton(self.group_frame, text="単一色", value="単一色", variable=self.option_value).pack(side=tk.LEFT)
+        tk.Radiobutton(self.group_frame, text="補色", value="補色", variable=self.option_value).pack(side=tk.LEFT)
+        tk.Radiobutton(self.group_frame, text="トライアド", value="トライアド", variable=self.option_value).pack(side=tk.LEFT)
+        tk.Radiobutton(self.group_frame, text="類似色", value="類似色", variable=self.option_value).pack(side=tk.LEFT)
+        tk.Radiobutton(
+            self.group_frame, text="スプリットコンプリメンタリー", value="スプリットコンプリメンタリー", variable=self.option_value
+        ).pack(side=tk.LEFT)
+
+        self.canvas = tk.Canvas(frame_canvas, height=730, width=730)
         self.canvas.pack(anchor=tk.CENTER, expand=0, pady=4, padx=4)
         self.canvas.bind("<B1-Motion>", self.on_mouse_draged)
         self.canvas.bind("<Double-Button-1>", self.on_mouse_dbclicked)
@@ -128,15 +137,20 @@ class ColorWheel:
 
         self.target = tk.PhotoImage(file="target.png")
 
-        frame_canvas.grid(row=0, column=0)
-        self.frame_right.grid(row=0, column=1, rowspan=2, sticky=tk.N + tk.S)
-        frame_bottom.grid(row=1, column=0, sticky=tk.W + tk.E)
+        self.group_frame.grid(row=0, column=0, pady=10)
+        frame_canvas.grid(row=1, column=0)
+        self.frame_right.grid(row=0, column=1, rowspan=3, sticky=tk.N + tk.S)
+        frame_bottom.grid(row=2, column=0, sticky=tk.W + tk.E)
+
+        self.canvas.update()
+        self.canvas_center = (self.canvas.winfo_width() // 2, self.canvas.winfo_height() // 2)
+        self.cur_x, self.cur_y = self.canvas_center
 
     def redraw(self):
         # clear the canvas and redraw
         self.canvas.delete("all")
         wheel = self.wheels[self.scale]
-        self.canvas.create_image(365 + self.canvas_mx, 365 + self.canvas_my, image=wheel)
+        self.canvas.create_image(self.canvas_center[0], self.canvas_center[1], image=wheel)
         self.canvas.create_image(self.cur_x, self.cur_y, image=self.target)
 
     def get_color(self):
