@@ -7,6 +7,54 @@
 """
 import tkinter as tk
 import copy
+import math
+
+
+class ColorCursor:
+    COLOR_SINGLE = "単一色"
+    COLOR_COMPLEMENTARY = "補色"
+    COLOR_TRIAD = "トライアド"
+    COLOR_ANALOGOUS = "類似色"
+    COLOR_SPLIT_COMPLEMENTARY = "スプリットコンプリメンタリー"
+    COLOR_TYPES = [COLOR_SINGLE, COLOR_COMPLEMENTARY, COLOR_TRIAD, COLOR_ANALOGOUS, COLOR_SPLIT_COMPLEMENTARY]
+
+    CURSOR_META = {
+        COLOR_SINGLE: {"cursor_count": 1, "others_degree": []},
+        COLOR_COMPLEMENTARY: {"cursor_count": 2, "others_degree": [180]},
+        COLOR_TRIAD: {"cursor_count": 3, "others_degree": [120, 240]},
+        COLOR_ANALOGOUS: {"cursor_count": 3, "others_degree": [-30, 30]},
+        COLOR_SPLIT_COMPLEMENTARY: {"cursor_count": 3, "others_degree": [150, 210]},
+    }
+
+    def __init__(self, x, y, center_x, center_y, color_type=COLOR_SINGLE) -> None:
+        self.cur_x = x
+        self.cur_y = y
+        self.center_x = center_x
+        self.center_y = center_y
+        self.other_positions = []
+        self.color_type = color_type
+
+    def rotate(self, x, y, deg):
+        rad = math.radians(deg)
+        rx, ry = (x - self.center_x), (y - self.center_y)
+        nx = rx * math.cos(rad) - ry * math.sin(rad) + self.center_x
+        ny = rx * math.sin(rad) + ry * math.cos(rad) + self.center_y
+        return int(nx), int(ny)
+
+    def setup_positions(self, x, y):
+        self.other_positions.clear()
+        meta = self.CURSOR_META[self.color_type]
+        for d in meta["others_degree"]:
+            self.other_positions.append(tuple(self.rotate(x, y, d)))
+
+    def update_position(self, x, y):
+        self.cur_x = x
+        self.cur_y = y
+        self.setup_positions(x, y)
+
+    def update_color_type(self, color_type):
+        self.color_type = color_type
+        self.setup_positions(self.cur_x, self.cur_y)
 
 
 class ColorFrame(tk.Frame):
@@ -69,7 +117,6 @@ class ColorFrame(tk.Frame):
             self.del_button["highlightcolor"] = hex_color
 
         self["bg"] = hex_color
-        self.parent["bg"] = hex_color
 
 
 class ColorWheel:
@@ -99,14 +146,11 @@ class ColorWheel:
         self.group_frame = tk.LabelFrame(self.root, text="配色パターン")
 
         self.option_value = tk.StringVar()
-        self.option_value.set("単一色")
-        tk.Radiobutton(self.group_frame, text="単一色", value="単一色", variable=self.option_value).pack(side=tk.LEFT)
-        tk.Radiobutton(self.group_frame, text="補色", value="補色", variable=self.option_value).pack(side=tk.LEFT)
-        tk.Radiobutton(self.group_frame, text="トライアド", value="トライアド", variable=self.option_value).pack(side=tk.LEFT)
-        tk.Radiobutton(self.group_frame, text="類似色", value="類似色", variable=self.option_value).pack(side=tk.LEFT)
-        tk.Radiobutton(
-            self.group_frame, text="スプリットコンプリメンタリー", value="スプリットコンプリメンタリー", variable=self.option_value
-        ).pack(side=tk.LEFT)
+        self.option_value.set(ColorCursor.COLOR_SINGLE)
+        for ct in ColorCursor.COLOR_TYPES:
+            tk.Radiobutton(
+                self.group_frame, text=ct, value=ct, variable=self.option_value, command=self.on_radio_changed
+            ).pack(side=tk.LEFT)
 
         self.canvas = tk.Canvas(frame_canvas, height=730, width=730)
         self.canvas.pack(anchor=tk.CENTER, expand=0, pady=4, padx=4)
@@ -126,8 +170,9 @@ class ColorWheel:
         )
         v_scale.pack(fill=tk.X, side=tk.LEFT, expand=1)
 
-        self.colorFrame = ColorFrame(self.frame_right)
-        self.colorFrame.pack(side=tk.TOP)
+        self.color_frame = ColorFrame(self.frame_right)
+        self.color_frame.pack(side=tk.TOP)
+        self.color_frame_list = []
 
         self.wheels = {}
         v = 0.1
@@ -136,6 +181,7 @@ class ColorWheel:
             v += 0.1
 
         self.target = tk.PhotoImage(file="target.png")
+        self.sub_target = tk.PhotoImage(file="sub_target.png")
 
         self.group_frame.grid(row=0, column=0, pady=10)
         frame_canvas.grid(row=1, column=0)
@@ -144,18 +190,16 @@ class ColorWheel:
 
         self.canvas.update()
         self.canvas_center = (self.canvas.winfo_width() // 2, self.canvas.winfo_height() // 2)
-        self.cur_x, self.cur_y = self.canvas_center
+        self.color_cursor = ColorCursor(*self.canvas_center, *self.canvas_center)
 
     def redraw(self):
         # clear the canvas and redraw
         self.canvas.delete("all")
         wheel = self.wheels[self.scale]
         self.canvas.create_image(self.canvas_center[0], self.canvas_center[1], image=wheel)
-        self.canvas.create_image(self.cur_x, self.cur_y, image=self.target)
-
-    def get_color(self):
-        wheel = self.wheels[self.scale]
-        return wheel.get(self.cur_x, self.cur_y)
+        for pos in self.color_cursor.other_positions:
+            self.canvas.create_image(pos[0], pos[1], image=self.sub_target)
+        self.canvas.create_image(self.color_cursor.cur_x, self.color_cursor.cur_y, image=self.target)
 
     def contrast_ratio(self, color1, color2):
         lums = []
@@ -164,10 +208,7 @@ class ColorWheel:
         wk = sorted(lums, reverse=True)
         return (wk[0] + 0.05) / (wk[1] + 0.05)
 
-    def update_color(self):
-        # get rgb color from pixel location in image
-        rgb_color = self.get_color()
-
+    def get_font_color(self, rgb_color):
         font_color = [0xFF, 0xFF, 0xFF]  # white
         ratio = self.contrast_ratio(rgb_color, font_color)
         # print("font white: ", ratio)
@@ -177,13 +218,31 @@ class ColorWheel:
             # ratio = self.contrast_ratio(rgb_color, font_color)
             # print("font black: ", ratio)
 
-        self.colorFrame.update_color(rgb_color, font_color)
+        return font_color
+
+    def update_color(self):
+        # get rgb color from pixel location in image
+        wheel = self.wheels[self.scale]
+        rgb_color = wheel.get(self.color_cursor.cur_x, self.color_cursor.cur_y)
+
+        font_color = self.get_font_color(rgb_color)
+        self.color_frame.update_color(rgb_color, font_color)
+        self.frame_right["bg"] = "#{:02x}{:02x}{:02x}".format(*rgb_color)
+
+        for idx, pos in enumerate(self.color_cursor.other_positions):
+            rgb_color = wheel.get(*pos)
+            font_color = self.get_font_color(rgb_color)
+            self.color_frame_list[idx].update_color(rgb_color, font_color)
 
     def has_color(self, x, y):
+        self.canvas_center
+        radius = self.wheel_width // 2
+
         wheel = self.wheels[self.scale]
-        if x < 0 or x >= self.wheel_width:
+
+        if x < self.canvas_center[0] - radius or x > self.canvas_center[0] + radius:
             return False
-        if y < 0 or y >= self.wheel_height:
+        if y < self.canvas_center[1] - radius or y > self.canvas_center[1] + radius:
             return False
 
         rgb_color = wheel.get(x, y)
@@ -199,8 +258,23 @@ class ColorWheel:
             return
 
         # get mouse coordinates
-        self.cur_x = event.x
-        self.cur_y = event.y
+        self.color_cursor.update_position(event.x, event.y)
+
+        self.redraw()
+        self.update_color()
+
+    def on_radio_changed(self):
+        color_type = self.option_value.get()
+        self.color_cursor.update_color_type(color_type)
+
+        for cf in self.color_frame_list:
+            cf.destroy()
+        self.color_frame_list.clear()
+
+        for _ in self.color_cursor.other_positions:
+            cf = ColorFrame(self.frame_right)
+            cf.pack(side=tk.TOP, after=self.color_frame)
+            self.color_frame_list.append(cf)
 
         self.redraw()
         self.update_color()
@@ -211,8 +285,7 @@ class ColorWheel:
             return
 
         # get mouse coordinates
-        self.cur_x = event.x
-        self.cur_y = event.y
+        self.color_cursor.update_position(event.x, event.y)
 
         self.redraw()
         self.update_color()
