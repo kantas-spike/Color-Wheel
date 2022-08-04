@@ -38,7 +38,7 @@ class ColorFrame(tk.Frame):
     def stock_color(self):
         frm = ColorFrame(self.parent, True)
         frm.update_color(copy.copy(self.rgb_color), copy.copy(self.font_color))
-        frm.pack(side=tk.BOTTOM)
+        frm.pack(side=tk.BOTTOM, after=self)
 
     def on_copy_clicked(self):
         self.parent.clipboard_clear()
