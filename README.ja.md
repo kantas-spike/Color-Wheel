@@ -10,7 +10,20 @@
 poetry run python3 color_wheel.py
 ~~~
 
-照準型のカーソルをドラッグすると該当箇所の色情報を右側の領域に表示します。
+- 照準型のカーソルをドラッグまたはダブルクリックすると該当箇所の色情報を右側の領域に表示します。
+
+  <span style="background-color:#ffffff; display: inline-block;">![#ffffff](target.png)</span>
+
+- また、配色パターンのラジオボタンを選択すると、点線のカーソルが追加され、関連する色情報もあわせて右側の領域に表示します。
+
+  <span style="background-color:#ffffff; display: inline-block;">![#ffffff](sub_target.png)</span>
+
+- 画面下部の"Brightness"スライダーを変更するとカラーホイールの輝度を変えれます。
+
+- 気に入った色は、色情報の「＋」ボタンで画面に下側にストックすることができます。
+- ストックされた色は、色情報の「−」ボタンで削除できます。
+
+- 色情報の「COPY」ボタンを押すと、RGB16進数表記の値(例: #000000)をクリップボードにコピーします。
 
 ![](screenshot.png)
 
