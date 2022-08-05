@@ -125,3 +125,7 @@ ModuleNotFoundError: No module named '_tkinter'
     ~~~shell
     poetry run python3 -m tkinter
     ~~~
+
+## 輝度に応じたカラーホイール画像の作成方法
+
+[kantas-spike/create-color-wheel.py](https://github.com/kantas-spike/create-color-wheel.py)で輝度に応じたカラーホイール画像を作成した。
