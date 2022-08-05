@@ -67,6 +67,7 @@ class ColorCursor:
 class ColorFrame(tk.Frame):
     DEFAULT_LIGHT_FONT_COLOR = [0xFF, 0xFF, 0xFF]
     DEFAULT_DARK_FONT_COLOR = [0, 0, 0]
+    stock_list = []
 
     def __init__(self, master=None, stock=False) -> None:
         super().__init__(master)
@@ -96,7 +97,11 @@ class ColorFrame(tk.Frame):
     def stock_color(self):
         frm = ColorFrame(self.parent, True)
         frm.update_color(copy.copy(self.rgb_color), copy.copy(self.font_color))
-        frm.pack(side=tk.BOTTOM, after=self)
+        if len(self.stock_list) > 0:
+            frm.pack(side=tk.BOTTOM, before=self.stock_list[-1])
+        else:
+            frm.pack(side=tk.BOTTOM)
+        self.stock_list.append(frm)
 
     def on_copy_clicked(self):
         self.parent.clipboard_clear()
@@ -106,6 +111,7 @@ class ColorFrame(tk.Frame):
         self.stock_color()
 
     def on_del_clicked(self):
+        self.stock_list.remove(self)
         self.destroy()
 
     def update_color(self, rgb_color, font_color):
