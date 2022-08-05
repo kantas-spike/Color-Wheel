@@ -54,7 +54,7 @@ class ColorCursor:
         self.other_positions.clear()
         self.other_positions.extend(self.calc_other_positions(x, y))
 
-    def update_positions(self, x, y):
+    def update_all_positions(self, x, y):
         self.cur_x = x
         self.cur_y = y
         self.update_other_positions(x, y)
@@ -65,6 +65,9 @@ class ColorCursor:
 
 
 class ColorFrame(tk.Frame):
+    DEFAULT_LIGHT_FONT_COLOR = [0xFF, 0xFF, 0xFF]
+    DEFAULT_DARK_FONT_COLOR = [0, 0, 0]
+
     def __init__(self, master=None, stock=False) -> None:
         super().__init__(master)
 
@@ -72,7 +75,7 @@ class ColorFrame(tk.Frame):
         self.font_color = [255, 255, 255]
         self.parent = master
         self.color_label = tk.StringVar()
-        self.color_label.set("#FFFFFF\nrgb(255,255,255)")
+        self.color_label.set(f"{self.format_to_hexstr(*self.rgb_color)}\n{self.format_to_rgbstr(*self.rgb_color)}")
         self.color_select = tk.Label(
             self, textvariable=self.color_label, bg="white", width=20, font=("Arial", 20, "bold")
         )
@@ -108,10 +111,10 @@ class ColorFrame(tk.Frame):
     def update_color(self, rgb_color, font_color):
         self.rgb_color = rgb_color
         self.font_color = font_color
-        hex_color = "#{:02x}{:02x}{:02x}".format(*rgb_color)
-        self.color_label.set(hex_color + "\nrgb({},{},{})".format(*rgb_color))
+        hex_color = self.format_to_hexstr(*rgb_color)
+        self.color_label.set(f"{hex_color}\n{self.format_to_rgbstr(*rgb_color)}")
         self.color_select["bg"] = hex_color
-        self.color_select["fg"] = "#{:02x}{:02x}{:02x}".format(*font_color)
+        self.color_select["fg"] = self.format_to_hexstr(*font_color)
         self.copy_button["highlightbackground"] = hex_color
         self.copy_button["highlightcolor"] = hex_color
 
@@ -125,13 +128,59 @@ class ColorFrame(tk.Frame):
 
         self["bg"] = hex_color
 
+    @staticmethod
+    def format_to_hexstr(r, g, b):
+        return "#{:02x}{:02x}{:02x}".format(r, g, b)
+
+    @staticmethod
+    def format_to_rgbstr(r, g, b):
+        return "rgb({},{},{})".format(r, g, b)
+
+    @classmethod
+    def contrast_ratio(cls, color1, color2):
+        lums = []
+        lums.append(cls.relative_luminace(color1))
+        lums.append(cls.relative_luminace(color2))
+        wk = sorted(lums, reverse=True)
+        return (wk[0] + 0.05) / (wk[1] + 0.05)
+
+    @classmethod
+    def get_font_color(cls, rgb_color):
+        font_color = cls.DEFAULT_LIGHT_FONT_COLOR
+        ratio = cls.contrast_ratio(rgb_color, font_color)
+        # print("font white: ", ratio)
+
+        if ratio < 4.5:
+            font_color = cls.DEFAULT_DARK_FONT_COLOR
+            # ratio = self.contrast_ratio(rgb_color, font_color)
+            # print("font black: ", ratio)
+
+        return font_color
+
+    @classmethod
+    def srgb2rgb(cls, v):
+        if v <= 0.03928:
+            return v / 12.92
+        else:
+            return ((v + 0.055) / 1.055) ** 2.4
+
+    @classmethod
+    def relative_luminace(cls, rgb):
+        r, g, b = [cls.srgb2rgb(x / 255.0) for x in rgb]
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
 
 class ColorWheel:
+    DEFAULT_BRIGHTNESS = 1.0
+
     def __init__(self) -> None:
+        self.root = tk.Tk()
+        self.root.title("Colorwheel")
+        self.brightness = self.val2key(self.DEFAULT_BRIGHTNESS)
+
+        self.setup_wheels()
         self.setup_widgets()
-        self.wheel_width = self.wheels[self.scale].width()
-        self.wheel_height = self.wheels[self.scale].height()
-        self.wheel_radius = round(self.wheel_width / 2)
+        self.setup_cursor()
 
     def start(self):
         self.update()
@@ -141,11 +190,24 @@ class ColorWheel:
         self.redraw()
         self.update_color()
 
-    def setup_widgets(self):
-        self.scale = self.val2key(1.0)
+    def setup_cursor(self):
+        self.canvas.update()
+        self.canvas_center = (round(self.canvas.winfo_width() / 2), round(self.canvas.winfo_height() / 2))
+        wheel_center = (self.wheel_radius, self.wheel_radius)
+        self.wheel_offset = (wheel_center[0] - self.canvas_center[0], wheel_center[1] - self.canvas_center[1])
+        self.color_cursor = ColorCursor(*self.canvas_center, *self.canvas_center)
 
-        self.root = tk.Tk()
-        self.root.title("Colorwheel")
+    def setup_wheels(self):
+        self.wheels = {}
+        v = 0.1
+        while v <= 1.0:
+            self.wheels[self.val2key(v)] = tk.PhotoImage(file=f"./imgs/wheel_{self.val2key(v)}.png")
+            v += 0.1
+        self.wheel_width = self.wheels[self.brightness].width()
+        self.wheel_height = self.wheels[self.brightness].height()
+        self.wheel_radius = round(self.wheel_width / 2)
+
+    def setup_widgets(self):
         frame_canvas = tk.Frame(self.root)
         self.frame_right = tk.Frame(self.root)
         frame_bottom = tk.Frame(self.root)
@@ -158,90 +220,60 @@ class ColorWheel:
                 self.group_frame, text=ct, value=ct, variable=self.option_value, command=self.on_radio_changed
             ).pack(side=tk.LEFT)
 
+        self.target = tk.PhotoImage(file="target.png")
+        self.sub_target = tk.PhotoImage(file="sub_target.png")
+
         self.canvas = tk.Canvas(frame_canvas, height=730, width=730)
         self.canvas.pack(anchor=tk.CENTER, expand=0, pady=4, padx=4)
         self.canvas.bind("<B1-Motion>", self.on_mouse_draged)
         self.canvas.bind("<Double-Button-1>", self.on_mouse_dbclicked)
 
-        v_var = tk.DoubleVar(value=1.0)
-        v_scale = tk.Scale(
+        scale_label = tk.Label(frame_bottom, text="Brightness:", width=11, font=("Arial", 14, "bold"), anchor=tk.S)
+        scale_label.pack(side=tk.LEFT, fill=tk.Y, expand=0)
+        brightness_var = tk.DoubleVar(value=self.DEFAULT_BRIGHTNESS)
+        brightness_slider = tk.Scale(
             frame_bottom,
-            variable=v_var,
+            variable=brightness_var,
             orient=tk.HORIZONTAL,
             from_=0.1,
             to=1.0,
             resolution=0.1,
             command=self.on_scaled,
-            label="Brightness:",
         )
-        v_scale.pack(fill=tk.X, side=tk.LEFT, expand=1)
+        brightness_slider.pack(fill=tk.X, side=tk.LEFT, expand=1)
 
         self.color_frame = ColorFrame(self.frame_right)
         self.color_frame.pack(side=tk.TOP)
         self.color_frame_list = []
-
-        self.wheels = {}
-        v = 0.1
-        while v <= 1.0:
-            self.wheels[self.val2key(v)] = tk.PhotoImage(file="./imgs/wheel_{:0.2f}.png".format(v))
-            v += 0.1
-
-        self.target = tk.PhotoImage(file="target.png")
-        self.sub_target = tk.PhotoImage(file="sub_target.png")
 
         self.group_frame.grid(row=0, column=0, pady=10)
         frame_canvas.grid(row=1, column=0)
         self.frame_right.grid(row=0, column=1, rowspan=3, sticky=tk.N + tk.S)
         frame_bottom.grid(row=2, column=0, sticky=tk.W + tk.E)
 
-        self.canvas.update()
-        self.canvas_center = (round(self.canvas.winfo_width() / 2), round(self.canvas.winfo_height() / 2))
-        wheel_center = (self.wheels["1.00"].width() // 2, self.wheels["1.00"].height() // 2)
-        self.wheel_offset = (wheel_center[0] - self.canvas_center[0], wheel_center[1] - self.canvas_center[1])
-        self.color_cursor = ColorCursor(*self.canvas_center, *self.canvas_center)
-
     def redraw(self):
         # clear the canvas and redraw
         self.canvas.delete("all")
-        wheel = self.wheels[self.scale]
+        wheel = self.wheels[self.brightness]
         self.canvas.create_image(self.canvas_center[0], self.canvas_center[1], image=wheel)
         for pos in self.color_cursor.other_positions:
             self.canvas.create_image(pos[0], pos[1], image=self.sub_target)
         self.canvas.create_image(self.color_cursor.cur_x, self.color_cursor.cur_y, image=self.target)
 
-    def contrast_ratio(self, color1, color2):
-        lums = []
-        lums.append(self.relative_luminace(color1))
-        lums.append(self.relative_luminace(color2))
-        wk = sorted(lums, reverse=True)
-        return (wk[0] + 0.05) / (wk[1] + 0.05)
-
-    def get_font_color(self, rgb_color):
-        font_color = [0xFF, 0xFF, 0xFF]  # white
-        ratio = self.contrast_ratio(rgb_color, font_color)
-        # print("font white: ", ratio)
-
-        if ratio < 4.5:
-            font_color = [0, 0, 0]  # black
-            # ratio = self.contrast_ratio(rgb_color, font_color)
-            # print("font black: ", ratio)
-
-        return font_color
-
     def get_wheel_color(self, x, y):
-        wheel = self.wheels[self.scale]
+        wheel = self.wheels[self.brightness]
         return wheel.get(x + self.wheel_offset[0], y + self.wheel_offset[1])
 
     def update_color(self):
         rgb_color = self.get_wheel_color(self.color_cursor.cur_x, self.color_cursor.cur_y)
 
-        font_color = self.get_font_color(rgb_color)
+        font_color = ColorFrame.get_font_color(rgb_color)
         self.color_frame.update_color(rgb_color, font_color)
-        self.frame_right["bg"] = "#{:02x}{:02x}{:02x}".format(*rgb_color)
+        self.frame_right["bg"] = ColorFrame.format_to_hexstr(*rgb_color)
 
         for idx, pos in enumerate(self.color_cursor.other_positions):
             rgb_color = self.get_wheel_color(*pos)
-            font_color = self.get_font_color(rgb_color)
+            font_color = ColorFrame.get_font_color(rgb_color)
             self.color_frame_list[idx].update_color(rgb_color, font_color)
 
     def in_wheel(self, x, y):
@@ -261,7 +293,7 @@ class ColorWheel:
                 return False
             try:
                 rgb_color = self.get_wheel_color(nx, ny)
-                hex_color = "#{:02x}{:02x}{:02x}".format(*rgb_color)
+                hex_color = ColorFrame.format_to_hexstr(*rgb_color)
                 if hex_color == "#000000":
                     return False
             except tk.TclError as err:
@@ -276,7 +308,7 @@ class ColorWheel:
             return
 
         # get mouse coordinates
-        self.color_cursor.update_positions(event.x, event.y)
+        self.color_cursor.update_all_positions(event.x, event.y)
 
         self.redraw()
         self.update_color()
@@ -302,28 +334,18 @@ class ColorWheel:
         if not self.has_color(event.x, event.y):
             return
 
-        self.color_cursor.update_positions(event.x, event.y)
+        self.color_cursor.update_all_positions(event.x, event.y)
 
         self.redraw()
         self.update_color()
 
     def on_scaled(self, val):
-        self.scale = self.val2key(float(val))
+        self.brightness = self.val2key(float(val))
         self.redraw()
         self.update_color()
 
     def val2key(self, val):
         return "{:0.2f}".format(val)
-
-    def srgb2rgb(self, v):
-        if v <= 0.03928:
-            return v / 12.92
-        else:
-            return ((v + 0.055) / 1.055) ** 2.4
-
-    def relative_luminace(self, rgb):
-        r, g, b = [self.srgb2rgb(x / 255.0) for x in rgb]
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
 if __name__ == "__main__":
