@@ -226,8 +226,8 @@ class ColorWheel:
                 self.group_frame, text=ct, value=ct, variable=self.option_value, command=self.on_radio_changed
             ).pack(side=tk.LEFT)
 
-        self.target = tk.PhotoImage(file="target.png")
-        self.sub_target = tk.PhotoImage(file="sub_target.png")
+        self.cursor_image = tk.PhotoImage(file="cursor.png")
+        self.sub_cursor_image = tk.PhotoImage(file="sub_cursor.png")
 
         self.canvas = tk.Canvas(frame_canvas, height=730, width=730)
         self.canvas.pack(anchor=tk.CENTER, expand=0, pady=4, padx=4)
@@ -263,8 +263,8 @@ class ColorWheel:
         wheel = self.wheels[self.brightness]
         self.canvas.create_image(self.canvas_center[0], self.canvas_center[1], image=wheel)
         for pos in self.color_cursor.other_positions:
-            self.canvas.create_image(pos[0], pos[1], image=self.sub_target)
-        self.canvas.create_image(self.color_cursor.cur_x, self.color_cursor.cur_y, image=self.target)
+            self.canvas.create_image(pos[0], pos[1], image=self.sub_cursor_image)
+        self.canvas.create_image(self.color_cursor.cur_x, self.color_cursor.cur_y, image=self.cursor_image)
 
     def get_wheel_color(self, x, y):
         wheel = self.wheels[self.brightness]
