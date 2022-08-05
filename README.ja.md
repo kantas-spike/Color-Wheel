@@ -7,16 +7,14 @@
 以下を実行すると、カラーホイール画面が表示されます。
 
 ~~~shell
-poetry run python3 color_wheel.py
+python3 color_wheel.py
 ~~~
+
+### 主な機能
 
 - 照準型のカーソルをドラッグまたはダブルクリックすると該当箇所の色情報を右側の領域に表示します。
 
-  <span style="background-color:#ffffff; display: inline-block;">![#ffffff](target.png)</span>
-
 - また、配色パターンのラジオボタンを選択すると、点線のカーソルが追加され、関連する色情報もあわせて右側の領域に表示します。
-
-  <span style="background-color:#ffffff; display: inline-block;">![#ffffff](sub_target.png)</span>
 
 - 画面下部の"Brightness"スライダーを変更するとカラーホイールの輝度を変えれます。
 
@@ -26,6 +24,23 @@ poetry run python3 color_wheel.py
 - 色情報の「COPY」ボタンを押すと、RGB16進数表記の値(例: #000000)をクリップボードにコピーします。
 
 ![](screenshot.png)
+
+### カーソルの種類
+
+- メインカーソル
+
+  ドラッグやダブルクリックにより色を選択する。
+  選択された色は画面右上の一番上に表示される。
+
+  ![](cursor.png)
+
+- サブカーソル
+
+  **Color Scheme** のラジオボタンに応じて、追加されるカーソル
+  メインカーソルの位置に応じて自動的に移動する。
+  選択された色は画面右上の二番目以降に表示される。
+
+  ![](sub_cursor.png)
 
 ## 環境構築
 
