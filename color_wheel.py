@@ -16,7 +16,17 @@ class ColorCursor:
     COLOR_TRIAD = "Triadic"
     COLOR_ANALOGOUS = "Analogous"
     COLOR_SPLIT_COMPLEMENTARY = "Split-complementary"
-    COLOR_TYPES = [COLOR_SINGLE, COLOR_COMPLEMENTARY, COLOR_SPLIT_COMPLEMENTARY, COLOR_TRIAD, COLOR_ANALOGOUS]
+    COLOR_TETRADIC_RECT = "Rectangle"
+    COLOR_TETRADIC_SQUARE = "Square"
+    COLOR_TYPES = [
+        COLOR_SINGLE,
+        COLOR_COMPLEMENTARY,
+        COLOR_SPLIT_COMPLEMENTARY,
+        COLOR_TRIAD,
+        COLOR_ANALOGOUS,
+        COLOR_TETRADIC_RECT,
+        COLOR_TETRADIC_SQUARE,
+    ]
 
     CURSOR_META = {
         COLOR_SINGLE: {"cursor_count": 1, "others_degree": []},
@@ -24,6 +34,8 @@ class ColorCursor:
         COLOR_TRIAD: {"cursor_count": 3, "others_degree": [120, 240]},
         COLOR_ANALOGOUS: {"cursor_count": 3, "others_degree": [-30, 30]},
         COLOR_SPLIT_COMPLEMENTARY: {"cursor_count": 3, "others_degree": [150, 210]},
+        COLOR_TETRADIC_RECT: {"cursor_count": 4, "others_degree": [60, 180, 240]},
+        COLOR_TETRADIC_SQUARE: {"cursor_count": 4, "others_degree": [90, 180, 270]},
     }
 
     def __init__(self, x, y, center_x, center_y, color_type=COLOR_SINGLE) -> None:
