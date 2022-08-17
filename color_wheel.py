@@ -8,6 +8,8 @@
 import tkinter as tk
 import copy
 import math
+import glob
+import re
 
 
 class ColorCursor:
@@ -16,7 +18,17 @@ class ColorCursor:
     COLOR_TRIAD = "Triadic"
     COLOR_ANALOGOUS = "Analogous"
     COLOR_SPLIT_COMPLEMENTARY = "Split-complementary"
-    COLOR_TYPES = [COLOR_SINGLE, COLOR_COMPLEMENTARY, COLOR_SPLIT_COMPLEMENTARY, COLOR_TRIAD, COLOR_ANALOGOUS]
+    COLOR_TETRADIC_RECT = "Rectangle"
+    COLOR_TETRADIC_SQUARE = "Square"
+    COLOR_TYPES = [
+        COLOR_SINGLE,
+        COLOR_COMPLEMENTARY,
+        COLOR_SPLIT_COMPLEMENTARY,
+        COLOR_TRIAD,
+        COLOR_ANALOGOUS,
+        COLOR_TETRADIC_RECT,
+        COLOR_TETRADIC_SQUARE,
+    ]
 
     CURSOR_META = {
         COLOR_SINGLE: {"cursor_count": 1, "others_degree": []},
@@ -24,6 +36,8 @@ class ColorCursor:
         COLOR_TRIAD: {"cursor_count": 3, "others_degree": [120, 240]},
         COLOR_ANALOGOUS: {"cursor_count": 3, "others_degree": [-30, 30]},
         COLOR_SPLIT_COMPLEMENTARY: {"cursor_count": 3, "others_degree": [150, 210]},
+        COLOR_TETRADIC_RECT: {"cursor_count": 4, "others_degree": [60, 180, 240]},
+        COLOR_TETRADIC_SQUARE: {"cursor_count": 4, "others_degree": [90, 180, 270]},
     }
 
     def __init__(self, x, y, center_x, center_y, color_type=COLOR_SINGLE) -> None:
@@ -177,7 +191,7 @@ class ColorFrame(tk.Frame):
 
 
 class ColorWheel:
-    DEFAULT_BRIGHTNESS = 1.0
+    DEFAULT_BRIGHTNESS = 0.5
 
     def __init__(self) -> None:
         self.root = tk.Tk()
@@ -205,10 +219,11 @@ class ColorWheel:
 
     def setup_wheels(self):
         self.wheels = {}
-        v = 0.1
-        while v <= 1.0:
-            self.wheels[self.val2key(v)] = tk.PhotoImage(file=f"./imgs/wheel_{self.val2key(v)}.png")
-            v += 0.1
+        for path in sorted(glob.glob("./imgs/wheel_*.png")):
+            if m := re.match(r".*/wheel_(\d+\.?\d*).png", path):
+                v = float(m.group(1))
+                self.wheels[self.val2key(v)] = tk.PhotoImage(file=path)
+
         self.wheel_width = self.wheels[self.brightness].width()
         self.wheel_height = self.wheels[self.brightness].height()
         self.wheel_radius = round(self.wheel_width / 2)
@@ -234,19 +249,18 @@ class ColorWheel:
         self.canvas.bind("<B1-Motion>", self.on_mouse_draged)
         self.canvas.bind("<Double-Button-1>", self.on_mouse_dbclicked)
 
-        scale_label = tk.Label(frame_bottom, text="Brightness:", width=11, font=("Arial", 14, "bold"), anchor=tk.S)
-        scale_label.pack(side=tk.LEFT, fill=tk.Y, expand=0)
-        brightness_var = tk.DoubleVar(value=self.DEFAULT_BRIGHTNESS)
-        brightness_slider = tk.Scale(
-            frame_bottom,
-            variable=brightness_var,
-            orient=tk.HORIZONTAL,
-            from_=0.1,
-            to=1.0,
-            resolution=0.1,
-            command=self.on_scaled,
-        )
-        brightness_slider.pack(fill=tk.X, side=tk.LEFT, expand=1)
+        self.brightness_frame = tk.LabelFrame(frame_bottom, text="Lightness:")
+        self.brightness_var = tk.DoubleVar()
+        self.brightness_var.set(self.DEFAULT_BRIGHTNESS)
+        for k in self.wheels.keys():
+            tk.Radiobutton(
+                self.brightness_frame,
+                text=int(float(k) * 100),
+                value=float(k),
+                variable=self.brightness_var,
+                command=self.on_brightness_changed,
+            ).pack(side=tk.LEFT)
+        self.brightness_frame.pack(fill=tk.X, side=tk.LEFT, expand=1)
 
         self.color_frame = ColorFrame(self.frame_right)
         self.color_frame.pack(side=tk.TOP)
@@ -275,7 +289,8 @@ class ColorWheel:
 
         font_color = ColorFrame.get_font_color(rgb_color)
         self.color_frame.update_color(rgb_color, font_color)
-        self.frame_right["bg"] = ColorFrame.format_to_hexstr(*rgb_color)
+        # self.frame_right["bg"] = ColorFrame.format_to_hexstr(*rgb_color)
+        self.frame_right["bg"] = "#cdcdcd"
 
         for idx, pos in enumerate(self.color_cursor.other_positions):
             rgb_color = self.get_wheel_color(*pos)
@@ -345,7 +360,8 @@ class ColorWheel:
         self.redraw()
         self.update_color()
 
-    def on_scaled(self, val):
+    def on_brightness_changed(self):
+        val = self.brightness_var.get()
         self.brightness = self.val2key(float(val))
         self.redraw()
         self.update_color()
