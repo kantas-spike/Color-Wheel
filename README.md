@@ -22,10 +22,11 @@ poetry run python3 color_wheel.py
 
 - Display the color(s) selected by the cursor(s) in the top right corner of the screen
 - Add (or Delete) cursors when radio button is changed in "Color Scheme"
-- Change brightness of the color wheel when brightness slider has changed
+- Change lightness of the color wheel when "Lightness" rudio buttons has changed
 - Copy the color to the bottom right corner of the screen when the "+" button of the color in the upper right corner of the screen has pressed
 - Delete the color from the bottom right corner of the screen when the "-" button of the copied color has pressed
 - Copy the RGB hex value (e.g. #000000) to the clipboard when "COPY" button of any colors pressed
+- Move the cursor to the location corresponding to the RGB hexadecimal string
 
 ![](screenshot.png)
 
