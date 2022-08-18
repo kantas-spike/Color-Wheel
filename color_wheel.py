@@ -6,6 +6,7 @@
 
 """
 import tkinter as tk
+import colorsys
 import copy
 import math
 import glob
@@ -266,10 +267,22 @@ class ColorWheel:
         self.color_frame.pack(side=tk.TOP)
         self.color_frame_list = []
 
+        self.input_frame = tk.LabelFrame(self.root, text="Color(例: #FFFFFF):")
+        self.input_frame.grid(row=2, column=1, sticky=tk.EW)
+        self.input_var = tk.StringVar()
+        self.input_entry = tk.Entry(self.input_frame, textvariable=self.input_var)
+        self.input_entry.pack(side=tk.LEFT, expand=1, fill=tk.X)
+        self.input_entry["bg"] = "white"
+        self.input_entry["fg"] = "black"
+        self.input_entry["insertbackground"] = "black"
+        self.input_button = tk.Button(self.input_frame, text="GoTo", command=self.on_goto_clicked)
+        self.input_button.pack(side=tk.RIGHT, ipady=1, pady=1)
+
         self.group_frame.grid(row=0, column=0, pady=10)
         frame_canvas.grid(row=1, column=0)
-        self.frame_right.grid(row=0, column=1, rowspan=3, sticky=tk.N + tk.S)
+        self.frame_right.grid(row=0, column=1, rowspan=2, sticky=tk.N + tk.S)
         frame_bottom.grid(row=2, column=0, sticky=tk.W + tk.E)
+        self.frame_right["bg"] = "#cdcdcd"
 
     def redraw(self):
         # clear the canvas and redraw
@@ -289,8 +302,6 @@ class ColorWheel:
 
         font_color = ColorFrame.get_font_color(rgb_color)
         self.color_frame.update_color(rgb_color, font_color)
-        # self.frame_right["bg"] = ColorFrame.format_to_hexstr(*rgb_color)
-        self.frame_right["bg"] = "#cdcdcd"
 
         for idx, pos in enumerate(self.color_cursor.other_positions):
             rgb_color = self.get_wheel_color(*pos)
@@ -366,8 +377,35 @@ class ColorWheel:
         self.redraw()
         self.update_color()
 
+    def on_goto_clicked(self):
+        val = self.input_var.get()
+        if result := re.match(r"#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})", val):
+            r = int(result.group(1), 16)
+            g = int(result.group(2), 16)
+            b = int(result.group(3), 16)
+            hls = colorsys.rgb_to_hls(r / 0xFF, g / 0xFF, b / 0xFF)
+            x, y = self.get_color_pos(hls)
+            self.input_var.set("")
+            self.input_entry["bg"] = "white"
+            self.brightness_var.set(round(hls[1], 2))
+            self.brightness = self.val2key(float(hls[1]))
+
+            self.color_cursor.update_all_positions(x, y)
+            self.redraw()
+            self.update_color()
+        else:
+            self.input_entry["bg"] = "#ffcccc"
+
     def val2key(self, val):
         return "{:0.2f}".format(val)
+
+    def get_color_pos(self, hls):
+        rad = (hls[0] * math.pi * 2) - math.pi / 2
+        rx = int(math.cos(rad) * self.wheel_radius * hls[2])
+        ry = int(math.sin(rad) * self.wheel_radius * hls[2])
+        x = rx + self.wheel_radius - self.wheel_offset[0]
+        y = ry + self.wheel_radius - self.wheel_offset[1]
+        return (x, y)
 
 
 if __name__ == "__main__":
