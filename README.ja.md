@@ -10,6 +10,8 @@
 python3 color_wheel.py
 ~~~
 
+[![カラーホイールの使い方](http://img.youtube.com/vi/Y_GyzQtuJVQ/0.jpg)](https://www.youtube.com/watch?v=Y_GyzQtuJVQ)
+
 ### 主な機能
 
 - 照準型のカーソルをドラッグまたはダブルクリックすると該当箇所の色情報を右側の領域に表示します。
