@@ -132,22 +132,22 @@ class ColorFrame(tk.Frame):
     def update_color(self, rgb_color, font_color):
         self.rgb_color = rgb_color
         self.font_color = font_color
-        hex_color = self.format_to_hexstr(*rgb_color)
-        self.color_label.set(f"{hex_color}\n{self.format_to_rgbstr(*rgb_color)}")
-        self.color_select["bg"] = hex_color
+        self.hex_color = self.format_to_hexstr(*rgb_color)
+        self.color_label.set(f"{self.hex_color}\n{self.format_to_rgbstr(*rgb_color)}")
+        self.color_select["bg"] = self.hex_color
         self.color_select["fg"] = self.format_to_hexstr(*font_color)
-        self.copy_button["highlightbackground"] = hex_color
-        self.copy_button["highlightcolor"] = hex_color
+        self.copy_button["highlightbackground"] = self.hex_color
+        self.copy_button["highlightcolor"] = self.hex_color
 
         if self.add_button:
-            self.add_button["highlightbackground"] = hex_color
-            self.add_button["highlightcolor"] = hex_color
+            self.add_button["highlightbackground"] = self.hex_color
+            self.add_button["highlightcolor"] = self.hex_color
 
         if self.del_button:
-            self.del_button["highlightbackground"] = hex_color
-            self.del_button["highlightcolor"] = hex_color
+            self.del_button["highlightbackground"] = self.hex_color
+            self.del_button["highlightcolor"] = self.hex_color
 
-        self["bg"] = hex_color
+        self["bg"] = self.hex_color
 
     @staticmethod
     def format_to_hexstr(r, g, b):
@@ -229,19 +229,7 @@ class ColorWheel:
         self.wheel_height = self.wheels[self.brightness].height()
         self.wheel_radius = round(self.wheel_width / 2)
 
-    def setup_widgets(self):
-        frame_canvas = tk.Frame(self.root)
-        self.frame_right = tk.Frame(self.root)
-        frame_bottom = tk.Frame(self.root)
-        self.group_frame = tk.LabelFrame(self.root, text="Color Scheme")
-
-        self.option_value = tk.StringVar()
-        self.option_value.set(ColorCursor.COLOR_SINGLE)
-        for ct in ColorCursor.COLOR_TYPES:
-            tk.Radiobutton(
-                self.group_frame, text=ct, value=ct, variable=self.option_value, command=self.on_radio_changed
-            ).pack(side=tk.LEFT)
-
+    def setup_canvas(self, frame_canvas):
         self.cursor_image = tk.PhotoImage(file="cursor.png")
         self.sub_cursor_image = tk.PhotoImage(file="sub_cursor.png")
 
@@ -250,24 +238,39 @@ class ColorWheel:
         self.canvas.bind("<B1-Motion>", self.on_mouse_draged)
         self.canvas.bind("<Double-Button-1>", self.on_mouse_dbclicked)
 
-        self.brightness_frame = tk.LabelFrame(frame_bottom, text="Lightness:")
-        self.brightness_var = tk.DoubleVar()
-        self.brightness_var.set(self.DEFAULT_BRIGHTNESS)
-        for k in self.wheels.keys():
-            tk.Radiobutton(
-                self.brightness_frame,
-                text=int(float(k) * 100),
-                value=float(k),
-                variable=self.brightness_var,
-                command=self.on_brightness_changed,
-            ).pack(side=tk.LEFT)
-        self.brightness_frame.pack(fill=tk.X, side=tk.LEFT, expand=1)
-
-        self.color_frame = ColorFrame(self.frame_right)
+    def setup_colorframelist(self, frame_right):
+        self.color_frame = ColorFrame(frame_right)
+        frame_right["bg"] = "#cdcdcd"
         self.color_frame.pack(side=tk.TOP)
         self.color_frame_list = []
 
-        self.input_frame = tk.LabelFrame(self.root, text="Color(例: #FFFFFF):")
+    def setup_brightness(self, frame_bottom):
+        self.brightness_frame = tk.LabelFrame(frame_bottom, text="Lightness:")
+        self.brightness_var = tk.DoubleVar()
+        self.brightness_var.set(self.DEFAULT_BRIGHTNESS * 100)
+        tk.Scale(
+            self.brightness_frame,
+            variable=self.brightness_var,
+            command=self.on_brightness_changed,
+            length=720,
+            width=10,
+            from_=0,
+            to=100,
+            resolution=1,
+            tickinterval=5,
+            orient=tk.HORIZONTAL,
+        ).pack(fill=tk.X)
+        self.brightness_frame.pack(fill=tk.X, side=tk.LEFT, expand=1)
+
+    def setup_color_scheme(self, group_frame):
+        self.option_value = tk.StringVar()
+        self.option_value.set(ColorCursor.COLOR_SINGLE)
+        for ct in ColorCursor.COLOR_TYPES:
+            tk.Radiobutton(
+                group_frame, text=ct, value=ct, variable=self.option_value, command=self.on_radio_changed
+            ).pack(side=tk.LEFT)
+
+    def setup_goto_color(self, input_frame):
         self.input_frame.grid(row=2, column=1, sticky=tk.EW)
         self.input_var = tk.StringVar()
         self.input_entry = tk.Entry(self.input_frame, textvariable=self.input_var)
@@ -278,11 +281,33 @@ class ColorWheel:
         self.input_button = tk.Button(self.input_frame, text="GoTo", command=self.on_goto_clicked)
         self.input_button.pack(side=tk.RIGHT, ipady=1, pady=1)
 
+    def setup_widgets(self):
+        self.frame_canvas = tk.Frame(self.root)
+        self.setup_canvas(self.frame_canvas)
+
+        self.frame_right = tk.Frame(self.root)
+        self.setup_colorframelist(self.frame_right)
+
+        self.frame_bottom = tk.Frame(self.root)
+        self.setup_brightness(self.frame_bottom)
+
+        self.group_frame = tk.LabelFrame(self.root, text="Color Scheme")
+        self.setup_color_scheme(self.group_frame)
+
+        self.input_frame = tk.LabelFrame(self.root, text="Color(例: #FFFFFF):")
+        self.setup_goto_color(self.input_frame)
+
+        self.status_info = tk.StringVar()
+        self.status_bar = tk.Label(self.root, textvariable=self.status_info, width=20, anchor=tk.W, padx=4)
+
         self.group_frame.grid(row=0, column=0, pady=10)
-        frame_canvas.grid(row=1, column=0)
+        self.frame_canvas.grid(row=1, column=0)
         self.frame_right.grid(row=0, column=1, rowspan=2, sticky=tk.N + tk.S)
-        frame_bottom.grid(row=2, column=0, sticky=tk.W + tk.E)
-        self.frame_right["bg"] = "#cdcdcd"
+        self.frame_bottom.grid(row=2, column=0, sticky=tk.W + tk.E)
+        self.status_bar.grid(row=3, column=0, columnspan=2, sticky=tk.W + tk.E)
+
+    def show_status(self, msg):
+        self.status_info.set(msg)
 
     def redraw(self):
         # clear the canvas and redraw
@@ -371,9 +396,9 @@ class ColorWheel:
         self.redraw()
         self.update_color()
 
-    def on_brightness_changed(self):
+    def on_brightness_changed(self, event=None):
         val = self.brightness_var.get()
-        self.brightness = self.val2key(float(val))
+        self.brightness = self.val2key(float(val) / 100)
         self.redraw()
         self.update_color()
 
@@ -387,14 +412,24 @@ class ColorWheel:
             x, y = self.get_color_pos(hls)
             self.input_var.set("")
             self.input_entry["bg"] = "white"
-            self.brightness_var.set(round(hls[1], 2))
-            self.brightness = self.val2key(float(hls[1]))
+            normalized_brightness = round(hls[1], 2)
+            self.brightness_var.set(normalized_brightness * 100)
+            self.brightness = self.val2key(normalized_brightness)
 
             self.color_cursor.update_all_positions(x, y)
             self.redraw()
             self.update_color()
+            if self.color_frame.hex_color != val:
+                self.show_status(
+                    "goto to {} instead of {}: there is no wheel that matches the lightness of {}(L: {})".format(
+                        self.color_frame.hex_color, val, val, hls[1]
+                    )
+                )
+            else:
+                self.show_status(f"goto: {val}")
         else:
             self.input_entry["bg"] = "#ffcccc"
+            self.show_status(f"invalid color: {val}")
 
     def val2key(self, val):
         return "{:0.2f}".format(val)
