@@ -132,22 +132,22 @@ class ColorFrame(tk.Frame):
     def update_color(self, rgb_color, font_color):
         self.rgb_color = rgb_color
         self.font_color = font_color
-        hex_color = self.format_to_hexstr(*rgb_color)
-        self.color_label.set(f"{hex_color}\n{self.format_to_rgbstr(*rgb_color)}")
-        self.color_select["bg"] = hex_color
+        self.hex_color = self.format_to_hexstr(*rgb_color)
+        self.color_label.set(f"{self.hex_color}\n{self.format_to_rgbstr(*rgb_color)}")
+        self.color_select["bg"] = self.hex_color
         self.color_select["fg"] = self.format_to_hexstr(*font_color)
-        self.copy_button["highlightbackground"] = hex_color
-        self.copy_button["highlightcolor"] = hex_color
+        self.copy_button["highlightbackground"] = self.hex_color
+        self.copy_button["highlightcolor"] = self.hex_color
 
         if self.add_button:
-            self.add_button["highlightbackground"] = hex_color
-            self.add_button["highlightcolor"] = hex_color
+            self.add_button["highlightbackground"] = self.hex_color
+            self.add_button["highlightcolor"] = self.hex_color
 
         if self.del_button:
-            self.del_button["highlightbackground"] = hex_color
-            self.del_button["highlightcolor"] = hex_color
+            self.del_button["highlightbackground"] = self.hex_color
+            self.del_button["highlightcolor"] = self.hex_color
 
-        self["bg"] = hex_color
+        self["bg"] = self.hex_color
 
     @staticmethod
     def format_to_hexstr(r, g, b):
@@ -297,10 +297,17 @@ class ColorWheel:
         self.input_frame = tk.LabelFrame(self.root, text="Color(例: #FFFFFF):")
         self.setup_goto_color(self.input_frame)
 
+        self.status_info = tk.StringVar()
+        self.status_bar = tk.Label(self.root, textvariable=self.status_info, width=20, anchor=tk.W, padx=4)
+
         self.group_frame.grid(row=0, column=0, pady=10)
         self.frame_canvas.grid(row=1, column=0)
         self.frame_right.grid(row=0, column=1, rowspan=2, sticky=tk.N + tk.S)
         self.frame_bottom.grid(row=2, column=0, sticky=tk.W + tk.E)
+        self.status_bar.grid(row=3, column=0, columnspan=2, sticky=tk.W + tk.E)
+
+    def show_status(self, msg):
+        self.status_info.set(msg)
 
     def redraw(self):
         # clear the canvas and redraw
@@ -405,17 +412,24 @@ class ColorWheel:
             x, y = self.get_color_pos(hls)
             self.input_var.set("")
             self.input_entry["bg"] = "white"
-            print(f"hls: {hls}")
             normalized_brightness = round(hls[1], 2)
-            print(f"normalized_brightness: {normalized_brightness}")
             self.brightness_var.set(normalized_brightness * 100)
             self.brightness = self.val2key(normalized_brightness)
 
             self.color_cursor.update_all_positions(x, y)
             self.redraw()
             self.update_color()
+            if self.color_frame.hex_color != val:
+                self.show_status(
+                    "goto to {} instead of {}: there is no wheel that matches the lightness of {}(L: {})".format(
+                        self.color_frame.hex_color, val, val, hls[1]
+                    )
+                )
+            else:
+                self.show_status(f"goto: {val}")
         else:
             self.input_entry["bg"] = "#ffcccc"
+            self.show_status(f"invalid color: {val}")
 
     def val2key(self, val):
         return "{:0.2f}".format(val)
