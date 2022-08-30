@@ -252,15 +252,19 @@ class ColorWheel:
 
         self.brightness_frame = tk.LabelFrame(frame_bottom, text="Lightness:")
         self.brightness_var = tk.DoubleVar()
-        self.brightness_var.set(self.DEFAULT_BRIGHTNESS)
-        for k in self.wheels.keys():
-            tk.Radiobutton(
-                self.brightness_frame,
-                text=int(float(k) * 100),
-                value=float(k),
-                variable=self.brightness_var,
-                command=self.on_brightness_changed,
-            ).pack(side=tk.LEFT)
+        self.brightness_var.set(self.DEFAULT_BRIGHTNESS * 100)
+        tk.Scale(
+            self.brightness_frame,
+            variable=self.brightness_var,
+            command=self.on_brightness_changed,
+            length=720,
+            width=10,
+            from_=0,
+            to=100,
+            resolution=1,
+            tickinterval=5,
+            orient=tk.HORIZONTAL,
+        ).pack(fill=tk.X)
         self.brightness_frame.pack(fill=tk.X, side=tk.LEFT, expand=1)
 
         self.color_frame = ColorFrame(self.frame_right)
@@ -371,9 +375,9 @@ class ColorWheel:
         self.redraw()
         self.update_color()
 
-    def on_brightness_changed(self):
+    def on_brightness_changed(self, event=None):
         val = self.brightness_var.get()
-        self.brightness = self.val2key(float(val))
+        self.brightness = self.val2key(float(val) / 100)
         self.redraw()
         self.update_color()
 
@@ -387,8 +391,11 @@ class ColorWheel:
             x, y = self.get_color_pos(hls)
             self.input_var.set("")
             self.input_entry["bg"] = "white"
-            self.brightness_var.set(round(hls[1], 2))
-            self.brightness = self.val2key(float(hls[1]))
+            print(f"hls: {hls}")
+            normalized_brightness = round(hls[1], 2)
+            print(f"normalized_brightness: {normalized_brightness}")
+            self.brightness_var.set(normalized_brightness * 100)
+            self.brightness = self.val2key(normalized_brightness)
 
             self.color_cursor.update_all_positions(x, y)
             self.redraw()
