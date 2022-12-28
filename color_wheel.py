@@ -91,7 +91,7 @@ class ColorFrame(tk.Frame):
         self.font_color = [255, 255, 255]
         self.parent = master
         self.color_label = tk.StringVar()
-        self.color_label.set(f"{self.format_to_hexstr(*self.rgb_color)}\n{self.format_to_rgbstr(*self.rgb_color)}")
+        self.color_label.set(f"{self.format_to_hexstr(*self.rgb_color)}\n{self.format_to_hslstr(*self.rgb_color)}")
         self.color_select = tk.Label(
             self, textvariable=self.color_label, bg="white", width=20, font=("Arial", 20, "bold")
         )
@@ -133,7 +133,7 @@ class ColorFrame(tk.Frame):
         self.rgb_color = rgb_color
         self.font_color = font_color
         self.hex_color = self.format_to_hexstr(*rgb_color)
-        self.color_label.set(f"{self.hex_color}\n{self.format_to_rgbstr(*rgb_color)}")
+        self.color_label.set(f"{self.hex_color}\n{self.format_to_hslstr(*rgb_color)}")
         self.color_select["bg"] = self.hex_color
         self.color_select["fg"] = self.format_to_hexstr(*font_color)
         self.copy_button["highlightbackground"] = self.hex_color
@@ -156,6 +156,11 @@ class ColorFrame(tk.Frame):
     @staticmethod
     def format_to_rgbstr(r, g, b):
         return "rgb({},{},{})".format(r, g, b)
+
+    @staticmethod
+    def format_to_hslstr(r, g, b):
+        hls = colorsys.rgb_to_hls(r / 0xFF, g / 0xFF, b / 0xFF)
+        return "hsl({}, {}%, {}%)".format(round(hls[0] * 360), round(hls[2] * 100), round(hls[1] * 100))
 
     @classmethod
     def contrast_ratio(cls, color1, color2):
